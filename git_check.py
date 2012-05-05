@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# *-* utf-8 *-*
+# *-* coding: utf-8 *-*
 
 from sys import stdout, exit as sys_exit
 from os import popen, environ, walk
