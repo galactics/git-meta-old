@@ -57,6 +57,7 @@ class git_repo:
 
 		tmp_status = 0
 		tmp_forward = ""
+		tmp_active_branch = repo.active_branch
 		for branch in repo.branches:
 			#exec "repo.heads."+str(branch)+".checkout()"
 			git.checkout(str(branch))
@@ -67,7 +68,8 @@ class git_repo:
 
 			if git.status('--porcelain') == "":
 				tmp_status += 1
-		repo.heads.master.checkout()
+		#repo.heads.master.checkout()
+		git.checkout(str(tmp_active_branch))
 		self.forward = tmp_forward[0:-1]
 		if tmp_status == len(repo.branches):
 			self.status = True
