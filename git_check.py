@@ -31,6 +31,7 @@ class git_repo:
         if isfile(path+"/.git/config"):
             self.er_num = 0
             self.repo = Repo(self.path)
+            self.get_status()
         else:
             self.er_num = -1
         try:
@@ -57,9 +58,8 @@ class git_repo:
 
         tmp_status = 0
         tmp_forward = ""
-        tmp_active_branch = repo.active_branch
-        for branch in repo.branches:
-            #exec "repo.heads."+str(branch)+".checkout()"
+        tmp_active_branch = self.repo.active_branch
+        for branch in self.repo.branches:
             git.checkout(str(branch))
             regex = re.compile(r'^\# Your branch .+ by (\d+) commits?\.',re.M)
             status = git.status().split("\n")[1]
@@ -68,10 +68,9 @@ class git_repo:
 
             if git.status('--porcelain') == "":
                 tmp_status += 1
-        #repo.heads.master.checkout()
         git.checkout(str(tmp_active_branch))
         self.forward = tmp_forward[0:-1]
-        if tmp_status == len(repo.branches):
+        if tmp_status == len(self.repo.branches):
             self.status = True
         else:
             self.status = False
@@ -81,8 +80,11 @@ class git_repo:
         """
         if self.forward:
             git = self.repo.git
-            git.push()
-                
+            try:
+                git.push()
+                self.forward = "pushed"
+            except:
+                self.forward = "push error - "+self.forward
 
         
     def print_status(self):
@@ -94,7 +96,7 @@ class git_repo:
         display = ">> "+self.path
         print display,
 
-        self.get_status()
+        #self.get_status()
         ## Displaying path of the repo
         if self.stashed:
             stash = "("+bcolors.WARNING+"stash"+bcolors.ENDC+")"
@@ -120,12 +122,6 @@ class git_repo:
             status = "[ "+bcolors.FAIL+"NO"+bcolors.ENDC+" ]"
         display = display+space+status
         print status
-        #else:
-            #space = ""
-            #for i in range(int(columns)-len(display)-8):
-                #space += " "
-            #display = display + space + "[ "+bcolors.WARNING+"??"+bcolors.ENDC+" ]"
-        #print display
 
 class git_check:
     def __init__(self,force_scan=False,root=environ['HOME']):
@@ -185,7 +181,8 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Verify all git repository.')
     parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
+    parser.add_argument('-P','--push-all',dest='push_all',action='store_true',default=False,help='Push all repositories to their remote servers')
     args = parser.parse_args()
     
     verif = git_check(args.scan)
-    verif.list_all()
+    verif.list_all(args.push_all)
