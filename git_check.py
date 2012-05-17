@@ -126,8 +126,10 @@ class git_repo:
 class git_check:
     def __init__(self,force_scan=False,root=environ['HOME']):
         self.fname = environ['HOME']+'/.gitdb'
+        self.ignore_fname = environ['HOME']+'/.gitdb_ignore'
         self.root = root
         self.repos = []
+        self.ignore = []
         self.update_db(force_scan)
     def update_db(self,force_scan):
         """
@@ -141,6 +143,12 @@ class git_check:
             f = open(self.fname,'r')
             self.repos = [line.replace('\n','') for line in f.readlines()]
             f.close()
+        if exists(self.ignore_fname):
+            f2 = open(self.ignore_fname,'r')
+            self.ignore = [line.replace('\n','') for line in f2.readlines()]
+            f2.close()
+        else:
+            self.ignore = []
     def scan(self,f):
         """
         Scan the computer to find all repositories
@@ -171,11 +179,11 @@ class git_check:
         Check statuses of all repositories listed in .gitdb file
         """
         for repo in self.repos:
-            a = git_repo(repo)
-            if a.forward and push_all:
-                a.push()
-            a.print_status()
-            #self.print_status(repo)
+            if repo not in self.ignore:
+                a = git_repo(repo)
+                if a.forward and push_all:
+                    a.push()
+                a.print_status()
         
 if __name__ == '__main__':
     import argparse
