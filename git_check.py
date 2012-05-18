@@ -59,17 +59,22 @@ class git_repo:
         tmp_status = 0
         tmp_forward = ""
         tmp_active_branch = self.repo.active_branch
-        for branch in self.repo.branches:
-            git.checkout(str(branch))
-            regex = re.compile(r'^\# Your branch .+ by (\d+) commits?\.',re.M)
-            status = git.status().split("\n")[1]
-            if regex.search(status):
-                tmp_forward += str(branch)+":"+str(int(regex.sub(r'\1',status)))+","
+        try:
+            for branch in self.repo.branches:
+                git.checkout(str(branch))
+                regex = re.compile(r'^\# Your branch .+ by (\d+) commits?\.',re.M)
+                status = git.status().split("\n")[1]
+                if regex.search(status):
+                    tmp_forward += str(branch)+":"+str(int(regex.sub(r'\1',status)))+","
 
-            if git.status('--porcelain') == "":
-                tmp_status += 1
-        git.checkout(str(tmp_active_branch))
+                if git.status('--porcelain') == "":
+                    tmp_status += 1
+            git.checkout(str(tmp_active_branch))
+        except:
+            tmp_status = 0
+            tmp_forward = ""
         self.forward = tmp_forward[0:-1]
+           
         if tmp_status == len(self.repo.branches):
             self.status = True
         else:
@@ -174,12 +179,12 @@ class git_check:
             f.write("%s\n" % item)
         return repos
 
-    def list_all(self,push_all=False):
+    def list_all(self,list_all=False,push_all=False):
         """
         Check statuses of all repositories listed in .gitdb file
         """
         for repo in self.repos:
-            if repo not in self.ignore:
+            if repo not in self.ignore or list_all:
                 a = git_repo(repo)
                 if a.forward and push_all:
                     a.push()
@@ -188,9 +193,10 @@ class git_check:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Verify all git repository.')
-    parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
+    parser.add_argument('-a','--all',dest='list_all',action='store_true',default=False,help='List all the repositories even those ignored')
     parser.add_argument('-P','--push-all',dest='push_all',action='store_true',default=False,help='Push all repositories to their remote servers')
+    parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
     args = parser.parse_args()
     
     verif = git_check(args.scan)
-    verif.list_all(args.push_all)
+    verif.list_all(args.list_all,args.push_all)
