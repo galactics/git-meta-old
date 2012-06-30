@@ -4,7 +4,6 @@
 from sys import stdout, exit as sys_exit
 from os import popen, environ, walk
 from os.path import join, exists, isfile
-#from re import search, sub, compile as re_compile
 import re
 from git import *
 
@@ -25,7 +24,7 @@ class bcolors:
         self.FAIL = ''
         self.ENDC = ''
 
-class git_repo:
+class gitRepo:
     def __init__(self,path):
         self.path = path
         if isfile(path+"/.git/config"):
@@ -128,7 +127,7 @@ class git_repo:
         display = display+space+status
         print status
 
-class git_check:
+class gitMeta:
     def __init__(self,force_scan=False,root=environ['HOME']):
         self.fname = environ['HOME']+'/.gitdb'
         self.ignore_fname = environ['HOME']+'/.gitdb_ignore'
@@ -168,7 +167,10 @@ class git_check:
             for f2 in files:
                 fpath = join(root,f2)
                 if re.search(r'.git/config$',fpath):
-                    repos.append(fpath.replace('/.git/config',''))
+                    fpath = fpath.replace('/.git/config','')
+                    if fpath not in self.ignore:
+                        repos.append(fpath)
+            # Animation
             if count % 11 == 0:
                 stdout.write("\r"+animation[count % len(animation)]+" ")
                 stdout.flush()
@@ -185,7 +187,7 @@ class git_check:
         """
         for repo in self.repos:
             if repo not in self.ignore or list_all:
-                a = git_repo(repo)
+                a = gitRepo(repo)
                 if a.forward and push_all:
                     a.push()
                 a.print_status()
@@ -198,5 +200,5 @@ if __name__ == '__main__':
     parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
     args = parser.parse_args()
     
-    verif = git_check(args.scan)
+    verif = gitMeta(args.scan)
     verif.list_all(args.list_all,args.push_all)
