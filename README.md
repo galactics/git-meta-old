@@ -1,4 +1,4 @@
-# Git_Check
+# git-meta
 
 This little program allows you to check if everything is going on well in all your git repositories.
 It performs the equivalent of a `git status` on every single repository and display a one line information.
