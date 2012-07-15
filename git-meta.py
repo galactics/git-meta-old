@@ -73,7 +73,7 @@ class gitRepo:
             tmp_status = 0
             tmp_forward = ""
         self.forward = tmp_forward[0:-1]
-           
+
         if tmp_status == len(self.repo.branches):
             self.status = True
         else:
@@ -90,7 +90,6 @@ class gitRepo:
             except:
                 self.forward = "push error - "+self.forward
 
-        
     def print_status(self):
         """
         Print a one line status of the repo including stashes, forward commits
@@ -135,10 +134,17 @@ class gitMeta:
         self.repos = []
         self.ignore = []
         self.update_db(force_scan)
+
     def update_db(self,force_scan):
         """
         Keep the list of repositories up to date
         """
+        if exists(self.ignore_fname):
+            f2 = open(self.ignore_fname,'r')
+            self.ignore = [line.replace('\n','') for line in f2.readlines()]
+            f2.close()
+        else:
+            self.ignore = []
         if force_scan or not exists(self.fname):
             f = open(self.fname,'w')
             self.repos = self.scan(f)
@@ -147,36 +153,36 @@ class gitMeta:
             f = open(self.fname,'r')
             self.repos = [line.replace('\n','') for line in f.readlines()]
             f.close()
-        if exists(self.ignore_fname):
-            f2 = open(self.ignore_fname,'r')
-            self.ignore = [line.replace('\n','') for line in f2.readlines()]
-            f2.close()
-        else:
-            self.ignore = []
+
     def scan(self,f):
         """
         Scan the computer to find all repositories
         """
         repos = []
- 
+
         print "=== Scanning"
         animation = "|/-\\"
-        
         count=0
+
+        # Prepare regexp list for verification
+        ignore = "|".join(self.ignore)
+
         for root, dirs, files in walk(self.root):
             for f2 in files:
                 fpath = join(root,f2)
+                # if this is a repo ...
                 if re.search(r'.git/config$',fpath):
                     fpath = fpath.replace('/.git/config','')
-                    if fpath not in self.ignore:
+                    #  ... and is not ignored
+                    if not re.search(ignore,fpath):
                         repos.append(fpath)
-            # Animation
-            if count % 11 == 0:
-                stdout.write("\r"+animation[count % len(animation)]+" ")
-                stdout.flush()
-            count += 1
+                # Animation
+                if count % 11 == 0:
+                    stdout.write("\r"+animation[count % len(animation)]+" ")
+                    stdout.flush()
+                count += 1
         stdout.write("\r")
-                
+
         for item in repos:
             f.write("%s\n" % item)
         return repos
@@ -191,7 +197,7 @@ class gitMeta:
                 if a.forward and push_all:
                     a.push()
                 a.print_status()
-        
+
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Verify all git repository.')
@@ -199,6 +205,6 @@ if __name__ == '__main__':
     parser.add_argument('-P','--push-all',dest='push_all',action='store_true',default=False,help='Push all repositories to their remote servers')
     parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
     args = parser.parse_args()
-    
+
     verif = gitMeta(args.scan)
     verif.list_all(args.list_all,args.push_all)
