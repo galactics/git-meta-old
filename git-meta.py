@@ -33,17 +33,13 @@ class gitRepo:
             self.get_status()
         else:
             self.er_num = -1
-        try:
-            self.get_error()
-        except:
-            sys_exit(0)
 
     def get_error(self):
         if self.er_num == 0:
             return 0
         if self.er_num == -1:
-            print self.path+" is not a valid git repo"
-        return er_num
+            print ">> "+bcolors.FAIL+self.path+" is not a valid git repo"+bcolors.ENDC
+        return self.er_num
 
     def get_status(self):
         """
@@ -194,9 +190,12 @@ class gitMeta:
         for repo in self.repos:
             if repo not in self.ignore or list_all:
                 a = gitRepo(repo)
-                if a.forward and push_all:
-                    a.push()
-                a.print_status()
+                if (a.get_error()) == 0:
+                    if a.forward and push_all:
+                        a.push()
+                    a.print_status()
+                else:
+                    pass
 
 if __name__ == '__main__':
     import argparse
