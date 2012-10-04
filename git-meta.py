@@ -156,7 +156,7 @@ class gitMeta:
         """
         repos = []
 
-        print "=== Scanning"
+        base = "=== Scanning"
         animation = "|/-\\"
         count=0
 
@@ -170,14 +170,14 @@ class gitMeta:
                 if re.search(r'.git/config$',fpath):
                     fpath = fpath.replace('/.git/config','')
                     #  ... and is not ignored
-                    if not re.search(ignore,fpath):
+                    if ignore == "" or not re.search(ignore,fpath):
                         repos.append(fpath)
                 # Animation
                 if count % 11 == 0:
-                    stdout.write("\r"+animation[count % len(animation)]+" ")
+                    stdout.write("\r"+base+" "+animation[count % len(animation)]+" ")
                     stdout.flush()
                 count += 1
-        stdout.write("\r")
+        stdout.write("\r=== "+str(len(repos))+" repos found\n")
 
         for item in repos:
             f.write("%s\n" % item)
