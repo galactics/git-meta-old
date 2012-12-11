@@ -7,8 +7,13 @@ from os.path import join, exists, isfile
 import re
 from git import *
 
+## retrieve the size of the terminal
 rows, columns = popen('stty size', 'r').read().split()
+
 class bcolors:
+    """
+    Enlighten the terminal with fancy colors !
+    """
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -25,6 +30,9 @@ class bcolors:
         self.ENDC = ''
 
 class gitRepo:
+    """
+    Repository object, to retrieve statuses and stuff
+    """
     def __init__(self,path):
         self.path = path
         if isfile(path+"/.git/config"):
