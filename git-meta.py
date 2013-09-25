@@ -21,6 +21,13 @@ class bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
 
+    list = ["HEADER",
+            "OKBLUE",
+            "OKGREEN",
+            "WARNING",
+            "FAIL",
+            "ENDC"]
+
     def disable(self):
         self.HEADER = ''
         self.OKBLUE = ''
@@ -94,41 +101,50 @@ class gitRepo:
             except:
                 self.forward = "push error - "+self.forward
 
+    def _get_str_len(self, string, dbg=False):
+        """ Return the lenght of a string without the bcolors code
+        """
+        for balise in bcolors.list:
+            exec("string = string.replace(bcolors.%s, '')"%(balise))
+        return len(string)
+
     def print_status(self):
         """
         Print a one line status of the repo including stashes, forward commits
 
         Display OK if there is nothig to display on <git status> command, NO otherwise
         """
-        display = ">> "+self.path
-        print display,
+        display = ">> " + self.path
 
-        #self.get_status()
-        ## Displaying path of the repo
+        ## Get stash
         if self.stashed:
-            stash = "("+bcolors.WARNING+"stash"+bcolors.ENDC+")"
-            display = display+stash+" " 
-            #last space to compensate the print xxx, space
-            print stash,
+            stash = "(" + bcolors.WARNING + "stash" + bcolors.ENDC + ")"
+        else:
+            stash = ""
 
+        ## Get forward
         if self.forward:
-            forward = "("+str(self.forward)+")"
+            forward = "(" + str(self.forward) + ")"
         else:
             forward = ""
-        space = ""
 
-        ## Filling with space
-        for i in range(int(columns)-len(display.replace(bcolors.WARNING,'').replace(bcolors.ENDC,''))-8-len(forward)):
-            space += " "
-        space += forward
-        print space,
-
+        ## Get status
         if self.status:
             status = "[ "+bcolors.OKGREEN+"OK"+bcolors.ENDC+" ]"
         else:
             status = "[ "+bcolors.FAIL+"NO"+bcolors.ENDC+" ]"
-        display = display+space+status
-        print status
+
+        ## Filling with whitespace
+        # Full string = display + whitespace + stash + forward + status
+        # Get lenght of string without whitespace
+        str_len = self._get_str_len(display) + self._get_str_len(stash)\
+                    + self._get_str_len(forward) + self._get_str_len(status)
+        nb_whitespace = int(columns) - str_len
+        whitespace = "".join([" "]*nb_whitespace)
+
+        ## Show display
+        display += whitespace + stash + forward + status
+        print display
 
 class gitMeta:
     def __init__(self,force_scan=False,root=environ['HOME']):
