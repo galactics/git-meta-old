@@ -10,10 +10,11 @@ from git import *
 ## retrieve the size of the terminal
 rows, columns = popen('stty size', 'r').read().split()
 
-class bcolors:
+class Bcolors:
     """
     Enlighten the terminal with fancy colors !
     """
+    BLACK = '\033[01m'
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -21,12 +22,19 @@ class bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
 
-    list = ["HEADER",
+    list = ["BLACK",
+            "HEADER",
             "OKBLUE",
             "OKGREEN",
             "WARNING",
             "FAIL",
             "ENDC"]
+
+    def bold(self, color):
+        """ Return the bold balise for color
+        """
+        exec("balise = self.%s.replace('[', '[1;')"%(color))
+        return balise
 
     def disable(self):
         self.HEADER = ''
@@ -41,6 +49,7 @@ class gitRepo:
     Repository object, to retrieve statuses and stuff
     """
     def __init__(self,path):
+        self.bcolors = Bcolors()
         self.path = path
         if isfile(path+"/.git/config"):
             self.er_num = 0
@@ -53,7 +62,7 @@ class gitRepo:
         if self.er_num == 0:
             return 0
         if self.er_num == -1:
-            print ">> "+bcolors.FAIL+self.path+" is not a valid git repo"+bcolors.ENDC
+            print ">> "+self.bcolors.FAIL+self.path+" is not a valid git repo"+self.bcolors.ENDC
         return self.er_num
 
     def get_status(self):
@@ -104,8 +113,9 @@ class gitRepo:
     def _get_str_len(self, string, dbg=False):
         """ Return the lenght of a string without the bcolors code
         """
-        for balise in bcolors.list:
-            exec("string = string.replace(bcolors.%s, '')"%(balise))
+        for balise in self.bcolors.list:
+            exec("string = string.replace(self.bcolors.%s, '')"%(balise))
+            exec("string = string.replace(self.bcolors.bold('%s'), '')"%(balise))
         return len(string)
 
     def print_status(self):
@@ -116,9 +126,16 @@ class gitRepo:
         """
         display = ">> " + self.path
 
+        ## Get status
+        if self.status:
+            status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
+        else:
+            status = self.bcolors.bold("BLACK") + "[ " + self.bcolors.bold("FAIL") +\
+                    "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold("BLACK") + " ]" +\
+                    self.bcolors.bold("ENDC")
         ## Get stash
         if self.stashed:
-            stash = "(" + bcolors.WARNING + "stash" + bcolors.ENDC + ")"
+            stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
         else:
             stash = ""
 
@@ -127,12 +144,6 @@ class gitRepo:
             forward = "(" + str(self.forward) + ")"
         else:
             forward = ""
-
-        ## Get status
-        if self.status:
-            status = "[ "+bcolors.OKGREEN+"OK"+bcolors.ENDC+" ]"
-        else:
-            status = "[ "+bcolors.FAIL+"NO"+bcolors.ENDC+" ]"
 
         ## Filling with whitespace
         # Full string = display + whitespace + stash + forward + status
