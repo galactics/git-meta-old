@@ -128,20 +128,33 @@ class gitRepo:
 
         ## Get status
         if self.status:
+            status_level = True
             status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
         else:
+            status_level = False
             status = self.bcolors.bold("BLACK") + "[ " + self.bcolors.bold("FAIL") +\
                     "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold("BLACK") + " ]" +\
                     self.bcolors.bold("ENDC")
+            display = self.bcolors.bold("BLACK") + display + self.bcolors.ENDC
+
         ## Get stash
         if self.stashed:
-            stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
+            if status_level:
+                stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
+            else:
+                stash = self.bcolors.bold("BLACK") + "(" + self.bcolors.bold("WARNING") +\
+                        "stash" + self.bcolors.bold("ENDC") + self.bcolors.bold("BLACK") + ")" +\
+                        self.bcolors.bold("ENDC")
         else:
             stash = ""
 
         ## Get forward
         if self.forward:
-            forward = "(" + str(self.forward) + ")"
+            if status_level:
+                forward = "(" + str(self.forward) + ")"
+            else:
+                forward = self.bcolors.bold("BLACK") + "(" + str(self.forward) \
+                        + self.bcolors.bold("BLACK") + ")" + self.bcolors.bold("ENDC")
         else:
             forward = ""
 
