@@ -157,6 +157,27 @@ class gitMeta:
             f = open(self.fname,'r')
             self.repos = [line.replace('\n','') for line in f.readlines()]
             f.close()
+            self.clean_db()
+
+    def clean_db(self):
+        """
+        Remove repo which not exists on the disk
+        """
+        clean_repos = [repo for repo in self.repos if exists(repo)]
+        remov_repos = [repo for repo in self.repos if not exists(repo)]
+        if remov_repos != []:
+            ## Print warning and which repo will be removed
+            print "/!\\ Following repo not exist and will be removed in the data base"
+            for repo in remov_repos:
+                print "/!\\ '%s' removed from data base"%(repo)
+            print
+
+            ## Update data base file
+            with open(self.fname, 'w') as f:
+                f.write("\n".join(clean_repos))
+
+            ## Update self.repos list
+            self.repos = clean_repos
 
     def scan(self,f):
         """
