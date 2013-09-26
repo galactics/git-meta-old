@@ -14,7 +14,7 @@ class Bcolors:
     """
     Enlighten the terminal with fancy colors !
     """
-    BLACK = '\033[01m'
+    BOLD = '\033[1m'
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -22,21 +22,26 @@ class Bcolors:
     FAIL = '\033[91m'
     ENDC = '\033[0m'
 
-    list = ["BLACK",
-            "HEADER",
+    list = ["HEADER",
             "OKBLUE",
             "OKGREEN",
             "WARNING",
             "FAIL",
             "ENDC"]
 
-    def bold(self, color):
+    def bold(self, color=None):
         """ Return the bold balise for color
         """
-        exec("balise = self.%s.replace('[', '[1;')"%(color))
-        return balise
+        ## Get balise
+        if color != None:
+            exec("balise = self.%s"%(color))
+        else:
+            balise = ""
+        ## Return bold color
+        return self.BOLD + balise
 
     def disable(self):
+        self.BOLD = ''
         self.HEADER = ''
         self.OKBLUE = ''
         self.OKGREEN = ''
@@ -113,9 +118,11 @@ class gitRepo:
     def _get_str_len(self, string, dbg=False):
         """ Return the lenght of a string without the bcolors code
         """
+        ## Remove bold balise
+        string = string.replace(self.bcolors.bold(), "")
+        ## Remove all color
         for balise in self.bcolors.list:
             exec("string = string.replace(self.bcolors.%s, '')"%(balise))
-            exec("string = string.replace(self.bcolors.bold('%s'), '')"%(balise))
         return len(string)
 
     def print_status(self):
@@ -132,18 +139,18 @@ class gitRepo:
             status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
         else:
             status_level = False
-            status = self.bcolors.bold("BLACK") + "[ " + self.bcolors.bold("FAIL") +\
-                    "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold("BLACK") + " ]" +\
+            status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
+                    "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
                     self.bcolors.bold("ENDC")
-            display = self.bcolors.bold("BLACK") + display + self.bcolors.ENDC
+            display = self.bcolors.bold() + display + self.bcolors.ENDC
 
         ## Get stash
         if self.stashed:
             if status_level:
                 stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
             else:
-                stash = self.bcolors.bold("BLACK") + "(" + self.bcolors.bold("WARNING") +\
-                        "stash" + self.bcolors.bold("ENDC") + self.bcolors.bold("BLACK") + ")" +\
+                stash = self.bcolors.bold() + "(" + self.bcolors.bold("WARNING") +\
+                        "stash" + self.bcolors.bold("ENDC") + self.bcolors.bold() + ")" +\
                         self.bcolors.bold("ENDC")
         else:
             stash = ""
@@ -153,8 +160,8 @@ class gitRepo:
             if status_level:
                 forward = "(" + str(self.forward) + ")"
             else:
-                forward = self.bcolors.bold("BLACK") + "(" + str(self.forward) \
-                        + self.bcolors.bold("BLACK") + ")" + self.bcolors.bold("ENDC")
+                forward = self.bcolors.bold() + "(" + str(self.forward) \
+                        + self.bcolors.bold() + ")" + self.bcolors.bold("ENDC")
         else:
             forward = ""
 
