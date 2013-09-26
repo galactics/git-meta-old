@@ -56,30 +56,46 @@ class gitRepo:
     def __init__(self,path):
         self.bcolors = Bcolors()
         self.path = path
-        if isfile(path+"/.git/config"):
-            self.er_num = 0
-            self.repo = Repo(self.path)
-            self.get_status()
-        else:
-            self.er_num = -1
+        self.er_num = 0
+        self.forward = None
+        self.stashed = None
+        self.status = None
+        self.set_status()
+
 
     def get_error(self):
-        if self.er_num == 0:
-            return 0
-        if self.er_num == -1:
-            print ">> "+self.bcolors.FAIL+self.path+" is not a valid git repo"+self.bcolors.ENDC
         return self.er_num
 
-    def get_status(self):
+    def set_status(self):
         """
         Retrieve all the information needed from the repo 
+
+        Return -1,0,1 respectively for:
+            -1: InvalidGitRepository
+            0:  Valid git repo, status = "ok" or "no"
+            1:  Git bare repo
         """
-        git = self.repo.git
+        ## Status is (bool, str)
+        self.status = ()
+
+        ## Get git.Repo and git.Repo.git
+        try:
+            self.repo = Repo(self.path)
+            git = self.repo.git
+            if git.rev_parse("--is-bare-repository") == 'true':
+                self.status = (False, "bare")
+                return 1
+        except InvalidGitRepositoryError:
+            self.status = (False, "InvalidGitRepository")
+            return -1
+
+        ## Set stashed
         if git.stash('list') != "":
             self.stashed = True
         else:
             self.stashed = False
 
+        ## Set forward
         tmp_status = 0
         tmp_forward = ""
         tmp_active_branch = self.repo.active_branch
@@ -98,11 +114,15 @@ class gitRepo:
             tmp_status = 0
             tmp_forward = ""
         self.forward = tmp_forward[0:-1]
-
+        
+        ## Set final status
         if tmp_status == len(self.repo.branches):
-            self.status = True
+            self.status = (True, "ok")
+            return 0
         else:
-            self.status = False
+            self.status = (True, "no")
+            return 0
+
     def push(self):
         """
         Equivalent of a `git push` command
@@ -131,18 +151,32 @@ class gitRepo:
 
         Display OK if there is nothig to display on <git status> command, NO otherwise
         """
-        display = ">> " + self.path
-
-        ## Get status
-        if self.status:
-            status_level = True
-            status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
+        ## Get status and display
+        # status = (bool, str)
+        if self.status[0]:
+            if self.status[1] == "ok":
+                status_level = True
+                status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
+                display = ">> " + self.path
+            elif self.status[1] == "no":
+                status_level = False
+                status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
+                        "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
+                        self.bcolors.bold("ENDC")
+                display = ">> " + self.path
+                display = self.bcolors.bold() + display + self.bcolors.ENDC
+            else:
+                raise ValueError("'%s' not a valid value for True status string"%(self.status[1]))
         else:
-            status_level = False
-            status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
-                    "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
-                    self.bcolors.bold("ENDC")
-            display = self.bcolors.bold() + display + self.bcolors.ENDC
+            status = ""
+            if self.status[1] == "InvalidGitRepository":
+                display = ">> " + self.path + self.bcolors.FAIL +\
+                      " is not a valid git repo" + self.bcolors.ENDC
+            elif self.status[1] == "bare":
+                display = ">> " + self.path +\
+                      self.bcolors.WARNING + " is a bare git repo" + self.bcolors.ENDC
+            else:
+                raise ValueError("'%s' not a valid value for False status string"%(self.status[1]))
 
         ## Get stash
         if self.stashed:
@@ -176,6 +210,7 @@ class gitRepo:
         ## Show display
         display += whitespace + stash + forward + status
         print display
+
 
 class gitMeta:
     def __init__(self,force_scan=False,root=environ['HOME']):
