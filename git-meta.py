@@ -60,7 +60,7 @@ class gitRepo:
         self.forward = None
         self.stashed = None
         self.status = None
-        self.set_status()
+        self.er_num = self.set_status()
 
 
     def get_error(self):
