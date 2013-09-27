@@ -5,7 +5,7 @@ from sys import stdout, exit as sys_exit
 from os import popen, environ, walk
 from os.path import join, exists, isfile
 import re
-from git import *
+from git import Repo, GitCommandError, InvalidGitRepositoryError
 
 ## retrieve the size of the terminal
 rows, columns = popen('stty size', 'r').read().split()
