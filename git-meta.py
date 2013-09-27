@@ -6,6 +6,7 @@ from os import popen, environ, walk
 from os.path import join, exists, isfile
 import re
 from git import Repo, GitCommandError, InvalidGitRepositoryError
+from textwrap import wrap
 
 ## retrieve the size of the terminal
 rows, columns = popen('stty size', 'r').read().split()
@@ -57,7 +58,7 @@ class gitRepo:
         self.bcolors = Bcolors()
         self.path = path
         self.er_num = 0
-        self.forward = None
+        self.forward = ""
         self.stashed = None
         self.status = None
         self.er_num = self.set_status()
@@ -96,27 +97,45 @@ class gitRepo:
             self.stashed = False
 
         ## Set forward
-        tmp_status = 0
-        tmp_forward = ""
-        tmp_active_branch = self.repo.active_branch
+        nb_status_ok = 0
+        forward = ""
+        branch_forward = ""
+        active_branch = self.repo.active_branch
         try:
             for branch in self.repo.branches:
                 git.checkout(str(branch))
                 regex = re.compile(r'^\# Your branch .+ by (\d+) commits?\.',re.M)
                 status = git.status().split("\n")[1]
                 if regex.search(status):
-                    tmp_forward += str(branch)+":"+str(int(regex.sub(r'\1',status)))+","
+                    branch_forward += str(branch)+":"+str(int(regex.sub(r'\1',status)))+","
+                else:
+                    forward += git.status()
 
                 if git.status('--porcelain') == "":
-                    tmp_status += 1
-            git.checkout(str(tmp_active_branch))
-        except:
-            tmp_status = 0
-            tmp_forward = ""
-        self.forward = tmp_forward[0:-1]
+                    nb_status_ok += 1
+            git.checkout(str(active_branch))
+        except GitCommandError as e:
+            nb_status_ok = 0
+            forward = "'%s' returned exit status %s: %s"%(
+                                " ".join(e.command), e.status, e.stderr)
+
+        ## Remove forward string when working directory is clean
+        if forward != "# On branch master\nnothing to commit, working directory clean":
+            ## Wrap text for terminal size
+            # width = columns      - len(">> ") - len("[ OK ]")
+            width = int(columns) - 3 - 6
+            forward = "\n".join([ "\n".join(wrap(text, width)) for text in forward.split("\n") ])
+            ## Add 3 white spaces to indent text
+            forward = "   " + forward.replace("\n", "\n   ")
+        else:
+            forward = ""
+
+        ## Set self.forward
+        self.forward = forward
         
+
         ## Set final status
-        if tmp_status == len(self.repo.branches):
+        if nb_status_ok == len(self.repo.branches):
             self.status = (True, "ok")
             return 0
         else:
@@ -145,7 +164,7 @@ class gitRepo:
             exec("string = string.replace(self.bcolors.%s, '')"%(balise))
         return len(string)
 
-    def print_status(self):
+    def print_status(self, verbose=False):
         """
         Print a one line status of the repo including stashes, forward commits
 
@@ -190,25 +209,24 @@ class gitRepo:
             stash = ""
 
         ## Get forward
-        if self.forward:
-            if status_level:
-                forward = "(" + str(self.forward) + ")"
-            else:
-                forward = self.bcolors.bold() + "(" + str(self.forward) \
-                        + self.bcolors.bold() + ")" + self.bcolors.bold("ENDC")
+        if verbose:
+            forward = self.forward
         else:
             forward = ""
 
         ## Filling with whitespace
-        # Full string = display + whitespace + stash + forward + status
+        # Full string = display + whitespace + stash + status
         # Get lenght of string without whitespace
         str_len = self._get_str_len(display) + self._get_str_len(stash)\
-                    + self._get_str_len(forward) + self._get_str_len(status)
+                    + self._get_str_len(status)
         nb_whitespace = int(columns) - str_len
         whitespace = "".join([" "]*nb_whitespace)
 
         ## Show display
-        display += whitespace + stash + forward + status
+        if verbose and forward != "":
+            display += whitespace + stash + status + "\n" + forward
+        else:
+            display += whitespace + stash + status
         print display
 
 
@@ -294,7 +312,7 @@ class gitMeta:
             f.write("%s\n" % item)
         return repos
 
-    def list_all(self,list_all=False,push_all=False):
+    def list_all(self,list_all=False,push_all=False, verbose=False):
         """
         Check statuses of all repositories listed in .gitdb file
         """
@@ -304,7 +322,7 @@ class gitMeta:
                 if (a.get_error()) == 0:
                     if a.forward and push_all:
                         a.push()
-                    a.print_status()
+                    a.print_status(verbose=verbose)
                 else:
                     pass
 
@@ -314,7 +332,10 @@ if __name__ == '__main__':
     parser.add_argument('-a','--all',dest='list_all',action='store_true',default=False,help='List all the repositories even those ignored')
     parser.add_argument('-P','--push-all',dest='push_all',action='store_true',default=False,help='Push all repositories to their remote servers')
     parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
+    parser.add_argument('-v', '--verbose', dest='verbose',
+                        action='store_true', default=False,
+                        help="Active verbose mode: print git status for 'NO' repo")
     args = parser.parse_args()
 
     verif = gitMeta(args.scan)
-    verif.list_all(args.list_all,args.push_all)
+    verif.list_all(args.list_all,args.push_all, args.verbose)
