@@ -10,10 +10,11 @@ from git import *
 ## retrieve the size of the terminal
 rows, columns = popen('stty size', 'r').read().split()
 
-class bcolors:
+class Bcolors:
     """
     Enlighten the terminal with fancy colors !
     """
+    BOLD = '\033[1m'
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
     OKGREEN = '\033[92m'
@@ -28,7 +29,19 @@ class bcolors:
             "FAIL",
             "ENDC"]
 
+    def bold(self, color=None):
+        """ Return the bold balise for color
+        """
+        ## Get balise
+        if color != None:
+            exec("balise = self.%s"%(color))
+        else:
+            balise = ""
+        ## Return bold color
+        return self.BOLD + balise
+
     def disable(self):
+        self.BOLD = ''
         self.HEADER = ''
         self.OKBLUE = ''
         self.OKGREEN = ''
@@ -41,6 +54,7 @@ class gitRepo:
     Repository object, to retrieve statuses and stuff
     """
     def __init__(self,path):
+        self.bcolors = Bcolors()
         self.path = path
         if isfile(path+"/.git/config"):
             self.er_num = 0
@@ -53,7 +67,7 @@ class gitRepo:
         if self.er_num == 0:
             return 0
         if self.er_num == -1:
-            print ">> "+bcolors.FAIL+self.path+" is not a valid git repo"+bcolors.ENDC
+            print ">> "+self.bcolors.FAIL+self.path+" is not a valid git repo"+self.bcolors.ENDC
         return self.er_num
 
     def get_status(self):
@@ -104,8 +118,11 @@ class gitRepo:
     def _get_str_len(self, string, dbg=False):
         """ Return the lenght of a string without the bcolors code
         """
-        for balise in bcolors.list:
-            exec("string = string.replace(bcolors.%s, '')"%(balise))
+        ## Remove bold balise
+        string = string.replace(self.bcolors.bold(), "")
+        ## Remove all color
+        for balise in self.bcolors.list:
+            exec("string = string.replace(self.bcolors.%s, '')"%(balise))
         return len(string)
 
     def print_status(self):
@@ -116,23 +133,37 @@ class gitRepo:
         """
         display = ">> " + self.path
 
+        ## Get status
+        if self.status:
+            status_level = True
+            status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
+        else:
+            status_level = False
+            status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
+                    "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
+                    self.bcolors.bold("ENDC")
+            display = self.bcolors.bold() + display + self.bcolors.ENDC
+
         ## Get stash
         if self.stashed:
-            stash = "(" + bcolors.WARNING + "stash" + bcolors.ENDC + ")"
+            if status_level:
+                stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
+            else:
+                stash = self.bcolors.bold() + "(" + self.bcolors.bold("WARNING") +\
+                        "stash" + self.bcolors.bold("ENDC") + self.bcolors.bold() + ")" +\
+                        self.bcolors.bold("ENDC")
         else:
             stash = ""
 
         ## Get forward
         if self.forward:
-            forward = "(" + str(self.forward) + ")"
+            if status_level:
+                forward = "(" + str(self.forward) + ")"
+            else:
+                forward = self.bcolors.bold() + "(" + str(self.forward) \
+                        + self.bcolors.bold() + ")" + self.bcolors.bold("ENDC")
         else:
             forward = ""
-
-        ## Get status
-        if self.status:
-            status = "[ "+bcolors.OKGREEN+"OK"+bcolors.ENDC+" ]"
-        else:
-            status = "[ "+bcolors.FAIL+"NO"+bcolors.ENDC+" ]"
 
         ## Filling with whitespace
         # Full string = display + whitespace + stash + forward + status
