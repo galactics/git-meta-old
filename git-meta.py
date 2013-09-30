@@ -236,6 +236,7 @@ class gitMeta:
         self.ignore_fname = environ['HOME']+'/.gitdb_ignore'
         self.root = root
         self.repos = []
+        self.gitrepo = []
         self.ignore = []
         self.update_db(force_scan)
 
@@ -312,19 +313,33 @@ class gitMeta:
             f.write("%s\n" % item)
         return repos
 
-    def list_all(self,list_all=False,push_all=False, verbose=False):
+    def list_all(self,list_all=False,push_all=False):
         """
         Check statuses of all repositories listed in .gitdb file
         """
+        print "=== Loading"
+
         for repo in self.repos:
             if repo not in self.ignore or list_all:
                 a = gitRepo(repo)
+                self.gitrepo.append([a, a.path, a.status[1]])
                 if (a.get_error()) == 0:
                     if a.forward and push_all:
                         a.push()
-                    a.print_status(verbose=verbose)
                 else:
                     pass
+        print "\r=== "+str(len(self.gitrepo))+" repos scanned\n"
+
+    def print_status(self, verbose=False, sortNOOK=True, reverse=True):
+        """ Print status for repo
+        """
+        ## Sort repo by status NO/OK
+        if sortNOOK:
+            self.gitrepo = sorted(self.gitrepo, key=lambda col: col[2], reverse=reverse)
+
+        ## Show full list
+        for repo in self.gitrepo:
+            repo[0].print_status(verbose=verbose)
 
 if __name__ == '__main__':
     import argparse
@@ -335,7 +350,15 @@ if __name__ == '__main__':
     parser.add_argument('-v', '--verbose', dest='verbose',
                         action='store_true', default=False,
                         help="Active verbose mode: print git status for 'NO' repo")
+    parser.add_argument('-S', '--sort', dest='sortNOOK',
+                       action='store_true', default=False,
+                       help="Sort git repo by status NO/OK (NO first)")
+    parser.add_argument('--reverse', dest='reverse',
+                       action='store_true', default=False,
+                       help="Reverse sort function")
     args = parser.parse_args()
 
     verif = gitMeta(args.scan)
-    verif.list_all(args.list_all,args.push_all, args.verbose)
+    verif.list_all(args.list_all,args.push_all)
+    verif.print_status(args.verbose, args.sortNOOK, args.reverse)
+
