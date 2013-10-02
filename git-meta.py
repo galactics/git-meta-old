@@ -50,7 +50,7 @@ class Bcolors:
         self.FAIL = ''
         self.ENDC = ''
 
-class gitRepo:
+class GitRepo:
     """
     Repository object, to retrieve statuses and stuff
     """
@@ -65,6 +65,8 @@ class gitRepo:
 
 
     def get_error(self):
+        """ Return error number
+        """
         return self.er_num
 
     def set_status(self):
@@ -230,8 +232,10 @@ class gitRepo:
         print display
 
 
-class gitMeta:
-    def __init__(self,force_scan=False,root=environ['HOME']):
+class GitMeta:
+    """ GitMeta class
+    """
+    def __init__(self, force_scan=False, root=environ['HOME']):
         self.fname = environ['HOME']+'/.gitdb'
         self.ignore_fname = environ['HOME']+'/.gitdb_ignore'
         self.root = root
@@ -240,23 +244,26 @@ class gitMeta:
         self.ignore = []
         self.update_db(force_scan)
 
-    def update_db(self,force_scan):
+    def update_db(self, force_scan):
         """
         Keep the list of repositories up to date
         """
+        ## Get ignore repo from ignore_fname
         if exists(self.ignore_fname):
             f2 = open(self.ignore_fname,'r')
-            self.ignore = [line.replace('\n','') for line in f2.readlines()]
+            self.ignore = [line.replace('\n', '') for line in f2.readlines()]
             f2.close()
         else:
             self.ignore = []
+
+        ## Get repos list
         if force_scan or not exists(self.fname):
-            f = open(self.fname,'w')
+            f = open(self.fname, 'w')
             self.repos = self.scan(f)
             f.close()
         else:
-            f = open(self.fname,'r')
-            self.repos = [line.replace('\n','') for line in f.readlines()]
+            f = open(self.fname, 'r')
+            self.repos = [line.replace('\n', '') for line in f.readlines()]
             f.close()
             self.clean_db()
 
@@ -264,8 +271,11 @@ class gitMeta:
         """
         Remove repo which not exists on the disk
         """
+        ## init local variable
         clean_repos = [repo for repo in self.repos if exists(repo)]
         remov_repos = [repo for repo in self.repos if not exists(repo)]
+
+        ## Remove repos in data base
         if remov_repos != []:
             ## Print warning and which repo will be removed
             print "/!\\ Following repo not exist and will be removed in the data base"
@@ -280,37 +290,41 @@ class gitMeta:
             ## Update self.repos list
             self.repos = clean_repos
 
-    def scan(self,f):
+    def scan(self, fname):
         """
         Scan the computer to find all repositories
         """
+        ## init local variable
         repos = []
 
+        ## Init scanning animation
         base = "=== Scanning"
         animation = "|/-\\"
         count=0
 
-        # Prepare regexp list for verification
+        ## Prepare regexp list for verification
         ignore = "|".join(self.ignore)
 
+        ## Walk in repo and get git repo
         for root, dirs, files in walk(self.root):
             for f2 in files:
                 fpath = join(root,f2)
-                # if this is a repo ...
+                ## if this is a repo ...
                 if re.search(r'.git/config$',fpath):
                     fpath = fpath.replace('/.git/config','')
-                    #  ... and is not ignored
+                    ##  ... and is not ignored
                     if ignore == "" or not re.search(ignore,fpath):
                         repos.append(fpath)
-                # Animation
+                ## Animation
                 if count % 11 == 0:
                     stdout.write("\r"+base+" "+animation[count % len(animation)]+" ")
                     stdout.flush()
                 count += 1
         stdout.write("\r=== "+str(len(repos))+" repos found\n")
 
+        ## Write repo in fname
         for item in repos:
-            f.write("%s\n" % item)
+            fname.write("%s\n" % item)
         return repos
 
     def list_all(self,list_all=False,push_all=False):
@@ -319,9 +333,10 @@ class gitMeta:
         """
         print "=== Loading"
 
+        ## Walk in repo and get GitRepo
         for repo in self.repos:
             if repo not in self.ignore or list_all:
-                a = gitRepo(repo)
+                a = GitRepo(repo)
                 self.gitrepo.append([a, a.path, a.status[1]])
                 if (a.get_error()) == 0:
                     if a.forward and push_all:
@@ -361,9 +376,15 @@ class gitMeta:
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Verify all git repository.')
-    parser.add_argument('-a','--all',dest='list_all',action='store_true',default=False,help='List all the repositories even those ignored')
-    parser.add_argument('-P','--push-all',dest='push_all',action='store_true',default=False,help='Push all repositories to their remote servers')
-    parser.add_argument('-s','--scan',dest='scan',action='store_true',default=False,help='Perform a complete tree scan of your data to search for git repositories')
+    parser.add_argument('-a', '--all', dest='list_all',
+                        action='store_true', default=False,
+                        help='List all the repositories even those ignored')
+    parser.add_argument('-P', '--push-all', dest='push_all',
+                        action='store_true', default=False,
+                        help='Push all repositories to their remote servers')
+    parser.add_argument('-s', '--scan', dest='scan',
+                        action='store_true', default=False,
+                        help='Perform a complete tree scan of your data to search for git repositories')
     parser.add_argument('-v', '--verbose', dest='verbose',
                         action='store_true', default=False,
                         help="Active verbose mode: print git status for 'NO' repo")
@@ -378,7 +399,7 @@ if __name__ == '__main__':
                        help="Select only git repo by status. value=ok/no/other")
     args = parser.parse_args()
 
-    verif = gitMeta(args.scan)
+    verif = GitMeta(args.scan)
     verif.list_all(args.list_all,args.push_all)
     verif.print_status(args.verbose, args.sortNOOK, args.reverse, args.select)
 
