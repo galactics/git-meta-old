@@ -375,7 +375,7 @@ if __name__ == '__main__':
                        help="Reverse sort function")
     parser.add_argument('--select', dest='select', type=str,
                        action='store', choices=('ok', 'no', 'other'),
-                       help="Select only git repo by status. value=ok/no")
+                       help="Select only git repo by status. value=ok/no/other")
     args = parser.parse_args()
 
     verif = gitMeta(args.scan)
