@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # *-* coding: utf-8 *-*
 
-from sys import stdout, exit as sys_exit
+from sys import stdout, exit
 from os import popen, environ, walk
 from os.path import join, exists, isfile
 import re
