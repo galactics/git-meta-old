@@ -17,10 +17,14 @@ class Ui(object):
         else:
             self.shift = 0
         self.top_line_to_show = 0
+        self.SELECT = "vv "
+        self.UNSELECT = ">> "
         self._UP = -1
         self._DOWN = 1
 
         self.highlight_line_nb = self.nb_row_head
+        self.selected_lines = []
+        self.current_line = 0
 
         ## Get screen and init curses
         self.screen = curses.initscr()
@@ -45,14 +49,14 @@ class Ui(object):
             else:
                 self.display()
             ## Bind key
-            c = self.screen.getch()
-            if c == curses.KEY_UP:
+            key = self.screen.getch()
+            if key == curses.KEY_UP:
                 self.updown(self._UP)
-            elif c == curses.KEY_DOWN:
+            elif key == curses.KEY_DOWN:
                 self.updown(self._DOWN)
-            #elif c == self.SPACE_KEY:
-                #self.markLine()
-            if c == ord("q"):
+            elif key == ord(' '):
+                self.toogle_select_line()
+            elif key == ord("q"):
                 self.exit()
 
     def center_string(self, text, width):
@@ -102,6 +106,14 @@ class Ui(object):
         for index in range(height):
             self.screen.addstr(index, 0, str(index+1) + "")
 
+    def toogle_select_line(self):
+        """ Mark current line as selected
+        """
+        if self.highlight_line_nb in self.selected_lines:
+            self.selected_lines.remove(self.highlight_line_nb)
+        else:
+            self.selected_lines.append(self.highlight_line_nb)
+
     def display(self, *args):
         """ Show information with curses
         """
@@ -120,15 +132,25 @@ class Ui(object):
         nb_line = self.top_line_to_show
         while loop:
             if index < height-self.nb_row_statusline:
-                if index == self.highlight_line_nb:
-                    self.screen.addstr(index, self.shift, self.lines[nb_line], curses.A_BOLD)
+                line = self.lines[nb_line]
+
+                ## Select
+                if index in self.selected_lines:
+                    line = self.SELECT + line
                 else:
-                    self.screen.addstr(index, self.shift, self.lines[nb_line])
+                    line = self.UNSELECT + line
+
+                ## highlight
+                if index == self.highlight_line_nb:
+                    self.screen.addstr(index, self.shift, line, curses.A_BOLD)
+                else:
+                    self.screen.addstr(index, self.shift, line)
                 index += 1
                 nb_line += 1
             else:
                 loop = False
 
+        ## Show number of lines
         if self.debug:
             self.nbLines(height)
 
