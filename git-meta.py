@@ -205,9 +205,22 @@ class GitMeta:
         self.ignore_fname = environ['HOME']+'/.gitdb_ignore'
         self.root = root
         self.repos = []
-        self.gitrepo = []
+        self.gitrepos = []
         self.ignore = []
         self.update_db(force_scan)
+        try:
+            self.animate = self.config('animate')
+        except NoSectionError:
+            self.animate = False
+        except NoOptionError:
+            self.animate = False
+
+    def config(self,item):
+        """
+        Get a variable from the git config file under the meta section
+        """
+        config = GitConfigParser(environ['HOME']+"/.gitconfig")
+        return config.get_value('meta', item)
 
     def update_db(self, force_scan):
         """
@@ -292,7 +305,7 @@ class GitMeta:
             fname.write("%s\n" % item)
         return repos
 
-    def list_all(self,list_all=False,push_all=False):
+    def buildList(self,list_all=False,push_all=False):
         """
         Check statuses of all repositories listed in .gitdb file
         """
@@ -302,36 +315,42 @@ class GitMeta:
         for repo in self.repos:
             if repo not in self.ignore or list_all:
                 a = GitRepo(repo)
-                a.branchStatus()
-                if a.globalStatus():
-                    if a.forward and push_all:
-                        a.push()
-                self.gitrepo.append(a)
+                if not self.animate:
+                    a.branchStatus()
+                    if a.globalStatus():
+                        if a.forward and push_all:
+                            a.push()
+                self.gitrepos.append(a)
 
-        print "\r=== "+str(len(self.gitrepo))+" repos scanned"
+        print "\r=== "+str(len(self.gitrepos))+" repos scanned"
 
-    def print_status(self, verbose=False, sortNOOK=True, reverse=True, select=None):
+    def printStatuses(self, verbose=False, sortNOOK=True, reverse=True, select=None):
         """ Print status for repo
         """
         ## Sort repo by status NO/OK
         if sortNOOK:
-            self.gitrepo = sorted(self.gitrepo, key=lambda repo: ~repo.globalStatus(), reverse=reverse)
+            self.animate = False
+            self.gitrepos = sorted(self.gitrepos, key=lambda repo: ~repo.globalStatus(), reverse=reverse)
 
         ## Get only 'select' status git repo
         if select is not None:
+            self.animate = False
             if select == "no":
-                self.gitrepo = [ repo for repo in self.gitrepo if repo.globalStatus() == False ]
+                self.gitrepos = [ repo for repo in self.gitrepos if repo.globalStatus() == False ]
             elif select == "ok":
-                self.gitrepo = [ repo for repo in self.gitrepo if repo.globalStatus() == True ]
+                self.gitrepos = [ repo for repo in self.gitrepos if repo.globalStatus() == True ]
             else:
                 raise ValueError("'%s' not a valid value for --select option"%(select))
 
         ## Show full list
         if select != None:
-            print "=== %d repos selected by '%s'\n"%(len(self.gitrepo), select)
+            print "=== %d repos selected by '%s'\n"%(len(self.gitrepos), select)
         else:
             print ""
-        for repo in self.gitrepo:
+
+        for repo in self.gitrepos:
+            if self.animate:
+                repo.branchStatus()
             repo.printStatus(verbose=verbose)
 
 if __name__ == '__main__':
@@ -357,10 +376,10 @@ if __name__ == '__main__':
                        help="Reverse sort function")
     parser.add_argument('--select', dest='select', type=str,
                        action='store', choices=('ok', 'no', 'other'),
-                       help="Select only git repo by status. value=ok/no/other")
+                       help="Select only git repo by status. value=ok|no")
     args = parser.parse_args()
 
     verif = GitMeta(args.scan)
-    verif.list_all(args.list_all,args.push_all)
-    verif.print_status(args.verbose, args.sortNOOK, args.reverse, args.select)
+    verif.buildList(args.list_all,args.push_all)
+    verif.printStatuses(args.verbose, args.sortNOOK, args.reverse, args.select)
 
