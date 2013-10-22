@@ -5,7 +5,8 @@ from sys import stdout, exit
 from os import popen, environ, walk
 from os.path import join, exists, isfile
 import re
-from git import Repo, GitCommandError, InvalidGitRepositoryError
+from git import Repo, GitCommandError, InvalidGitRepositoryError, GitConfigParser
+from ConfigParser import NoOptionError, NoSectionError
 from textwrap import wrap
 
 ## retrieve the size of the terminal
@@ -61,88 +62,56 @@ class GitRepo:
         self.forward = ""
         self.stashed = None
         self.status = None
-        self.er_num = self.set_status()
-
+        self.forward = None
+        self.repo = Repo(self.path)
+        if self.repo.git.rev_parse("--is-bare-repository") == 'true':
+            print "Bare repository"
 
     def get_error(self):
         """ Return error number
         """
         return self.er_num
 
-    def set_status(self):
+    def branchStatus(self):
         """
-        Retrieve all the information needed from the repo 
-
-        Return -1,0,1 respectively for:
-            -1: InvalidGitRepository
-            0:  Valid git repo, status = "ok" or "no"
-            1:  Git bare repo
+        Retrieve all the information needed from the repo
         """
-        ## Status is (bool, str)
-        self.status = ()
-
-        ## Get git.Repo and git.Repo.git
-        try:
-            self.repo = Repo(self.path)
-            git = self.repo.git
-            if git.rev_parse("--is-bare-repository") == 'true':
-                self.status = (False, "bare")
-                return 1
-        except InvalidGitRepositoryError:
-            self.status = (False, "InvalidGitRepository")
-            return -1
-
         ## Set stashed
-        if git.stash('list') != "":
+        if self.repo.git.stash('list') != "":
             self.stashed = True
         else:
             self.stashed = False
 
         ## Set forward
         nb_status_ok = 0
-        forward = ""
-        branch_forward = ""
+        branch_status = {}
+        branch_forward = {}
+        verbose = []
         active_branch = self.repo.active_branch
-        try:
-            for branch in self.repo.branches:
-                git.checkout(str(branch))
+        for branch in self.repo.branches:
+            try:
+                ## Checkout the branch (make it active)
+                self.repo.git.checkout(str(branch))
+
+                ## Extract the number of forward commit on the local branch
                 regex = re.compile(r'^\# Your branch .+ by (\d+) commits?\.',re.M)
-                status = git.status().split("\n")[1]
+                status = self.repo.git.status().split("\n")[1]
                 if regex.search(status):
-                    branch_forward += str(branch)+":"+str(int(regex.sub(r'\1',status)))+","
-                else:
-                    forward += git.status()
+                    branch_forward[str(branch)] = int(regex.sub(r'\1',status))
 
-                if git.status('--porcelain') == "":
-                    nb_status_ok += 1
-            git.checkout(str(active_branch))
-        except GitCommandError as e:
-            nb_status_ok = 0
-            forward = "'%s' returned exit status %s: %s"%(
-                                " ".join(e.command), e.status, e.stderr)
+                ## Get the status of the branch
+                branch_status[str(branch)] = self.repo.git.status('--porcelain')
+                verbose.append(self.repo.git.status())
+            except GitCommandError:
+                branch_status[str(branch)] = 'Error while retrieving branch infos'
 
-        ## Remove forward string when working directory is clean
-        if forward != "# On branch master\nnothing to commit, working directory clean":
-            ## Wrap text for terminal size
-            # width = columns      - len(">> ") - len("[ OK ]")
-            width = int(columns) - 3 - 6
-            forward = "\n".join([ "\n".join(wrap(text, width)) for text in forward.split("\n") ])
-            ## Add 3 white spaces to indent text
-            forward = "   " + forward.replace("\n", "\n   ")
-        else:
-            forward = ""
+        ## Go back to original branch
+        self.repo.git.checkout(str(active_branch))
 
         ## Set self.forward
-        self.forward = forward
-        
-
-        ## Set final status
-        if nb_status_ok == len(self.repo.branches):
-            self.status = (True, "ok")
-            return 0
-        else:
-            self.status = (True, "no")
-            return 0
+        self.status = branch_status
+        self.forward = branch_forward
+        self.verbose = verbose
 
     def push(self):
         """
@@ -166,71 +135,67 @@ class GitRepo:
             exec("string = string.replace(self.bcolors.%s, '')"%(balise))
         return len(string)
 
-    def print_status(self, verbose=False):
+    def globalStatus(self):
+        """
+        Rerturn False if at least one branch is not clean
+        """
+        if self.status == None:
+            self.branchStatus()
+
+        globalStatus = True
+        for branch in self.status:
+            if self.status[branch] != '':
+                globalStatus = False
+
+        return globalStatus
+
+    def printStatus(self, verbose=False):
         """
         Print a one line status of the repo including stashes, forward commits
 
         Display OK if there is nothig to display on <git status> command, NO otherwise
         """
-        ## Get status and display
-        # status = (bool, str)
-        if self.status[0]:
-            if self.status[1] == "ok":
-                status_level = True
-                status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
-                display = ">> " + self.path
-            elif self.status[1] == "no":
-                status_level = False
-                status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
-                        "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
-                        self.bcolors.bold("ENDC")
-                display = ">> " + self.path
-                display = self.bcolors.bold() + display + self.bcolors.ENDC
-            else:
-                raise ValueError("'%s' not a valid value for True status string"%(self.status[1]))
+
+        status = ""
+        display = ""
+        stash = ""
+        forward = ""
+
+        if self.globalStatus():
+            status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
+            display = ">> " + self.path
         else:
-            status = ""
-            if self.status[1] == "InvalidGitRepository":
-                display = ">> " + self.path + self.bcolors.FAIL +\
-                      " is not a valid git repo" + self.bcolors.ENDC
-            elif self.status[1] == "bare":
-                display = ">> " + self.path +\
-                      self.bcolors.WARNING + " is a bare git repo" + self.bcolors.ENDC
-            else:
-                raise ValueError("'%s' not a valid value for False status string"%(self.status[1]))
+            status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
+                    "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
+                    self.bcolors.bold("ENDC")
+            display = ">> " + self.path
+            display = self.bcolors.bold() + display + self.bcolors.ENDC
 
         ## Get stash
         if self.stashed:
-            if status_level:
-                stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
-            else:
-                stash = self.bcolors.bold() + "(" + self.bcolors.bold("WARNING") +\
-                        "stash" + self.bcolors.bold("ENDC") + self.bcolors.bold() + ")" +\
-                        self.bcolors.bold("ENDC")
-        else:
-            stash = ""
+            stash = "(" + self.bcolors.WARNING + "stash" + self.bcolors.ENDC + ")"
+
+        if self.forward:
+            forward = "("+ ",".join([branch+":"+str(self.forward[branch]) for branch in self.forward ]) + ")"
 
         ## Get forward
         if verbose:
-            forward = self.forward
-        else:
-            forward = ""
+            verboseString = "\n".join(self.verbose)
 
         ## Filling with whitespace
         # Full string = display + whitespace + stash + status
         # Get lenght of string without whitespace
-        str_len = self._get_str_len(display) + self._get_str_len(stash)\
+        str_len = self._get_str_len(display) + self._get_str_len(forward) + self._get_str_len(stash)\
                     + self._get_str_len(status)
         nb_whitespace = int(columns) - str_len
         whitespace = "".join([" "]*nb_whitespace)
 
         ## Show display
-        if verbose and forward != "":
-            display += whitespace + stash + status + "\n" + forward
+        if verbose and verbose != "":
+            display += whitespace + stash + forward + status + "\n" + verboseString
         else:
-            display += whitespace + stash + status
+            display += whitespace + stash + forward + status
         print display
-
 
 class GitMeta:
     """ GitMeta class
@@ -337,12 +302,12 @@ class GitMeta:
         for repo in self.repos:
             if repo not in self.ignore or list_all:
                 a = GitRepo(repo)
-                self.gitrepo.append([a, a.path, a.status[1]])
-                if (a.get_error()) == 0:
+                a.branchStatus()
+                if a.globalStatus():
                     if a.forward and push_all:
                         a.push()
-                else:
-                    pass
+                self.gitrepo.append(a)
+
         print "\r=== "+str(len(self.gitrepo))+" repos scanned"
 
     def print_status(self, verbose=False, sortNOOK=True, reverse=True, select=None):
@@ -350,20 +315,16 @@ class GitMeta:
         """
         ## Sort repo by status NO/OK
         if sortNOOK:
-            self.gitrepo = sorted(self.gitrepo, key=lambda col: col[2], reverse=reverse)
+            self.gitrepo = sorted(self.gitrepo, key=lambda repo: ~repo.globalStatus(), reverse=reverse)
 
         ## Get only 'select' status git repo
-        if select == "no":
-            self.gitrepo = [ repo for repo in self.gitrepo if repo[2] == "no" ]
-        elif select == "ok":
-            self.gitrepo = [ repo for repo in self.gitrepo if repo[2] == "ok" ]
-        elif select == "other":
-            self.gitrepo = [ repo for repo in self.gitrepo if repo[2] != "ok" and repo[2] != "no" ]
-        elif select == None:
-            pass
-        else:
-            raise ValueError("'%s' not a valid value for --select option"%(select))
-
+        if select is not None:
+            if select == "no":
+                self.gitrepo = [ repo for repo in self.gitrepo if repo.globalStatus() == False ]
+            elif select == "ok":
+                self.gitrepo = [ repo for repo in self.gitrepo if repo.globalStatus() == True ]
+            else:
+                raise ValueError("'%s' not a valid value for --select option"%(select))
 
         ## Show full list
         if select != None:
@@ -371,7 +332,7 @@ class GitMeta:
         else:
             print ""
         for repo in self.gitrepo:
-            repo[0].print_status(verbose=verbose)
+            repo.printStatus(verbose=verbose)
 
 if __name__ == '__main__':
     import argparse
