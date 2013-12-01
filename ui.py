@@ -6,6 +6,8 @@
 
 import sys
 import curses
+import inspector
+import logger
 
 class Ui(object):
     """User Interface for git-meta"""
@@ -58,8 +60,19 @@ class Ui(object):
                 self.updown(self._DOWN)
             elif key == ord(' '):
                 self.toogle_select_line()
+            elif key == ord('i'):
+                self.inspect()
             elif key == ord("q"):
                 self.exit()
+
+    def inspect(self):
+        """ Run inspector for each repo"""
+        #pass
+        log = logger.Log()
+        #self.restore_screen()
+        #import pdb; pdb.set_trace()
+        for line in self.selected_lines:
+            inspector.Inspector(self.lines[line], log=log)
 
     def center_string(self, text, width):
         """ Center text by filling space with white space
