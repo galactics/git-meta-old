@@ -15,15 +15,20 @@ class Ui(object):
         # pylint: disable=C0103
         ## Set parameters
         self.debug = False if not 'debug' in kwarg.keys() else kwarg['debug']
-        self.nb_row_head = 5
-        self.nb_row_statusline = 1
+
+        self.nb_row_head = 5 # Size of header
+        self.nb_row_statusline = 1 # Size of footer
         if self.debug:
-            self.shift = 3
+            self.shift = 3 # shift used for line number
         else:
             self.shift = 0
-        self.top_line_to_show = 0
+        self.top_line_to_show = 0 # set first line to be shown in lines
+
+        ## Display configuration
         self.SELECT = " x "
         self.UNSELECT = "   "
+
+        ## Internal variables
         self._UP = -1
         self._DOWN = 1
 
