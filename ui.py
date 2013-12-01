@@ -34,17 +34,19 @@ class Ui(object):
         ## Internal variables
         self._UP = -1
         self._DOWN = 1
-
         self.highlight_line_nb = self.nb_row_head
         self.selected_lines = []
         self.current_line = 0
 
         ## Get screen and init curses
         self.screen = curses.initscr()
+        curses.start_color()
         curses.noecho()
         curses.cbreak()
         self.screen.keypad(1)
         self.screen.border(0)
+        curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
+        curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
 
         ## Get list of lines as a list of string
         self.lines = lines
@@ -172,7 +174,11 @@ class Ui(object):
                 line = line.ljust(line_width, self.FILL)
 
                 ## Get status
-                status = '[' + self.status[nb_line] + ']'
+                status = '[ ' + self.status[nb_line] + ' ]'
+                if status == '[ OK ]':
+                    color = curses.color_pair(1)
+                else:
+                    color = curses.color_pair(2)
                 status = status.center(self.status_width, ' ')
 
                 ## Concatenante line and status
@@ -181,14 +187,15 @@ class Ui(object):
                 ## Select
                 if self.get_lines_index(index) in self.selected_lines:
                     line = self.SELECT + line
+                    color += curses.A_REVERSE
                 else:
                     line = self.UNSELECT + line
 
                 ## highlight
                 if index == self.highlight_line_nb:
-                    self.screen.addstr(index, self.shift, line, curses.A_BOLD)
+                    self.screen.addstr(index, self.shift, line, color + curses.A_BOLD)
                 else:
-                    self.screen.addstr(index, self.shift, line)
+                    self.screen.addstr(index, self.shift, line, color)
                 index += 1
                 nb_line += 1
             else:
