@@ -11,7 +11,7 @@ import logger
 
 class Ui(object):
     """User Interface for git-meta"""
-    def __init__(self, lines, **kwarg):
+    def __init__(self, lines, status, **kwarg):
         # pylint: disable=C0103
         ## Set parameters
         self.debug = False if not 'debug' in kwarg.keys() else kwarg['debug']
@@ -27,6 +27,9 @@ class Ui(object):
         ## Display configuration
         self.SELECT = " x "
         self.UNSELECT = "   "
+        self.select_width = 3
+        self.status_width = 6
+        self.FILL = '.'
 
         ## Internal variables
         self._UP = -1
@@ -42,9 +45,10 @@ class Ui(object):
         curses.cbreak()
         self.screen.keypad(1)
         self.screen.border(0)
-        
+
         ## Get list of lines as a list of string
         self.lines = lines
+        self.status = status
 
         ## Run
         self.run()
@@ -73,7 +77,6 @@ class Ui(object):
 
     def inspect(self):
         """ Run inspector for each repo"""
-        #pass
         log = logger.Log()
         #self.restore_screen()
         #import pdb; pdb.set_trace()
@@ -153,6 +156,7 @@ class Ui(object):
 
         ## Get screen size
         height, width = self.screen.getmaxyx()
+        line_width = width - self.shift - self.status_width - self.select_width
 
         ## Print header
         self.print_header(height, width)
@@ -163,7 +167,16 @@ class Ui(object):
         nb_line = self.top_line_to_show
         while loop:
             if index < height-self.nb_row_statusline:
+                ## Get line
                 line = self.lines[nb_line]
+                line = line.ljust(line_width, self.FILL)
+
+                ## Get status
+                status = '[' + self.status[nb_line] + ']'
+                status = status.center(self.status_width, ' ')
+
+                ## Concatenante line and status
+                line = line + status
 
                 ## Select
                 if self.get_lines_index(index) in self.selected_lines:
@@ -253,6 +266,13 @@ class Ui(object):
         sys.exit(1)
 
 if __name__ == "__main__":
-    lines = ['BaAcJy3b\n', 'Ve6oiMbSLfqmm0jsdVE35qjgPQ5sBgodCvI7\n', 'dEsIVNU2\n', 'eP4auN7I9jKvFouQIlBThDlkicENl8QPt0h5QUf\n', 'ZIROlLG7cAQQ1pdNYKHFIoNs\n', 'guKTfp2LGosuMaTgOZCtcL7RQZoU3W\n', 'V1QM\n', 'xUhF0BEjQ4IsUUVKk0kwKb4\n', '6xgYORyjneUli0VHUKUNba8MjjPAq5DdvPc7369H\n', 'B7wBGtgt\n', 'tDq8xDLbDvqPYS3fwrNLbCBZh3yiItm\n', 'xBC2qhV\n', 'bgY1YvARImTdx08gQhivjhpQpkj8B\n', 'hfU27q3jvqeUsai7HBmSpDzPnFffDMvFOCvll\n', '2OcNGgB8\n', 'ZDJaRDacj2VJT9xBCaBJ9Na2O\n', 'X0V\n', 'xLNN2fnsIhnW6FsxqDeOBpJWDhB7Vsm1rNhENvP\n', '3wbKtOPSbNxzrxvTuoH5RiqtOfxSHtqJIrxQ\n', 'iA52SIY4k\n', 'aEwn99DngjvmhwMI45qdAG3rOQzCT\n', 'UBvhxeDrZOqwrQ3xNcQnFmRZHwdSdpVZnihJB4\n', '16yEB2c4LDrnbZF6RdyY3e0FNsDvc4x2NGWpw2\n', 'zv0tmdmkY5Gn\n', 'G2Up8Cd1nNhcEnRIC4tIicXzFhJ5GD3D6o7i6Hl\n', 'zDBM\n', 'I0zhx4RUDtRiyOxuJYvGRRYA4UxFLkMGR1s\n', 'dzSXh7n3qQndsCRzvHjMD6pIS\n', '1Kpg\n', 'BYcbUKpitx80\n', 'D14st\n', 'QlQQmLE4aHqVKYL2APjDrGCW1onLm5TEB2\n', 'wFMmn\n', '8fcRZhOgHcaTKQJmddVNUb07mwBl\n', 'imTo9NhQWFCAnOw8Q2i\n', 'rcyE\n', 'TRsngOkhZeoIkUVSVNQH0IfPGLPXwOwo9Ykqi\n', '6DRJhndNxNCCTr6myDXEYAqNkS\n', 'jhoNm9Y8bYBv2ahyJb09Fm8MAS6ylVpx3eOyap\n', 'BSz9gtfEKuwNaJGvKbg\n', '5pPp3RS\n', 'o3KPEwXfixQbu4NHkoCkUR18gxZmN8qe\n', 'UIOHJO8ximVbh4Wro2bnSEDEkilHOFNSzS\n', 'jzccNvLHwhobYvU55twKClFt\n', 'gVfQzkTgHCsMkLEbpupUXVrCkjBo\n', 'XLiMkdv4h0zP6FDjgdM\n', 'I3AfSpUHzuu0eUbHXcSo\n', 'lz2NUeQWq7ogumTo8OOySToIQr3fpwWyS5GPzir\n', 'k5TQPl4pLJKFw6N\n', 'TOCjjClYSjANFGz69uLoW0mt7pJRX8G\n', 'xcU\n', 'Jqp\n', 'T61KKshSq\n', 'cBCjVTqF3NOJgeXjZb9tSzPakeOJRoYwfbB\n', 'cAgiktPeAXpTAZ5\n', 'n582kYl9keMyJZ\n', 'FLQjXRSXulEvf3u2hz28WLddRZUcv8HUmiR\n', 'G303fSTJTJyazH6plrEkWT82bGKKleJl0We4Q\n', 'iM4Q21QmnaPdTL8yrpPNlUIDaR40Ej\n', 'eKPacJ6CereCIk\n', 'sVB3aXIzI8m3kbpQcUJao9MTSdmA9k2H\n', 'tO73NUdJJ3T3dBaWpt\n', 'BFIIDQRT2yYrV8jpyNqSmo9c1Uk5Qf647dTtur\n', 'SvyhUh9kGX\n', 'pbSX8qZkHmZfCcO9o0lEoKdhFe\n', 'WJEEtf1kIl0FCciNktPftiLTb\n', 'MVQrJh0Ilq8JjJ7ssbVA7dMV\n', 'jW6sW1n1spfU4XI4iMwGYE116BqmDjstm9izQ\n', '9ewEA2S4NtE3I260lAVCQt98UD\n', '2r7WaPdIdVBaC4Q1ETn\n', 'VDzC1\n', 'KbxlzJ70O4FRytsU\n', 'FKB8CrDksKnUEzswgnItginJ0Og1rdn8\n', 'JclFu\n', 'PLQqCpnsPKPTxmd4FzXkyQ\n', 'sjjeZESqzTqZmpzp\n', '244NAenB8V4QIkNjmulBz3MF7MNxRoS8oI\n', 'ZfA1NZ3bKUkZa3UMrxANLusZNPvlXtLQtmlBfq\n', 'caxki7wXE4BDIhCEWXoNS\n', '1N69bVxKSZ1a1UReo08fayz7kdCwNJfkypk8UGf\n', 'SbdKxUOt8V7hD1tmUornUXB1R0\n', 'dpGdOMq\n', 'Rg7RV60thLAnMGPTasIph2kcFub9oRFbAvFmAaU\n', 'eUqbeMUKyAMfLYT3AjOIGoJ\n', 'bsorsLAb\n', 'ZgW7BNjzkg1JjkJOx6e1xhIpUiQ19d8hKNneXtnR\n', 'wxszERqpwC1n05bIbVPwV9k3vmbP1gC\n', 'NHNOITH1STXltLhvguNNOlGRmdmIyZu7C\n', 'u0E4MOlUaYKoHXnnqwQRhmKBC2sDpQrW0ObANVdQ\n', 'w6eW\n', '9OdqwUegAM2hEMsRCKMscl\n', 'RikHBLCqM9UkArKGiFFCv5s942ZB\n', 'Zhxuesz6Q6q5wlaFHklL1nri\n', 'YNSeFqRAlD\n', 'Tcfpaobm3JsfRHsfIc7bzEu9k9O8X\n', 'HgsUk7DpO4a0wPDM655Si\n', 'Fp8urlcrlg8TMWx4vS7l\n', 'wJlEf\n', 'Dfr1uVU1fKkDy7rQqUl4S\n', '9RUS2UkXT5DNFM\n']
-    ui = Ui(lines)
-    #ui = Ui(lines, debug=True)
+    LINES = ['BaAcJy3b', 'Ve6oiMbSLfqmm0jsdVE35qjgPQ5sBgodCvI7', 'dEsIVNU2', 'eP4auN7I9jKvFouQIlBThDlkicENl8QPt0h5QUf', 'ZIROlLG7cAQQ1pdNYKHFIoNs', 'guKTfp2LGosuMaTgOZCtcL7RQZoU3W', 'V1QM', 'xUhF0BEjQ4IsUUVKk0kwKb4', '6xgYORyjneUli0VHUKUNba8MjjPAq5DdvPc7369H', 'B7wBGtgt', 'tDq8xDLbDvqPYS3fwrNLbCBZh3yiItm', 'xBC2qhV', 'bgY1YvARImTdx08gQhivjhpQpkj8B', 'hfU27q3jvqeUsai7HBmSpDzPnFffDMvFOCvll', '2OcNGgB8', 'ZDJaRDacj2VJT9xBCaBJ9Na2O', 'X0V', 'xLNN2fnsIhnW6FsxqDeOBpJWDhB7Vsm1rNhENvP', '3wbKtOPSbNxzrxvTuoH5RiqtOfxSHtqJIrxQ', 'iA52SIY4k', 'aEwn99DngjvmhwMI45qdAG3rOQzCT', 'UBvhxeDrZOqwrQ3xNcQnFmRZHwdSdpVZnihJB4', '16yEB2c4LDrnbZF6RdyY3e0FNsDvc4x2NGWpw2', 'zv0tmdmkY5Gn', 'G2Up8Cd1nNhcEnRIC4tIicXzFhJ5GD3D6o7i6Hl', 'zDBM', 'I0zhx4RUDtRiyOxuJYvGRRYA4UxFLkMGR1s', 'dzSXh7n3qQndsCRzvHjMD6pIS', '1Kpg', 'BYcbUKpitx80', 'D14st', 'QlQQmLE4aHqVKYL2APjDrGCW1onLm5TEB2', 'wFMmn', '8fcRZhOgHcaTKQJmddVNUb07mwBl', 'imTo9NhQWFCAnOw8Q2i', 'rcyE', 'TRsngOkhZeoIkUVSVNQH0IfPGLPXwOwo9Ykqi', '6DRJhndNxNCCTr6myDXEYAqNkS', 'jhoNm9Y8bYBv2ahyJb09Fm8MAS6ylVpx3eOyap', 'BSz9gtfEKuwNaJGvKbg', '5pPp3RS', 'o3KPEwXfixQbu4NHkoCkUR18gxZmN8qe', 'UIOHJO8ximVbh4Wro2bnSEDEkilHOFNSzS', 'jzccNvLHwhobYvU55twKClFt', 'gVfQzkTgHCsMkLEbpupUXVrCkjBo', 'XLiMkdv4h0zP6FDjgdM', 'I3AfSpUHzuu0eUbHXcSo', 'lz2NUeQWq7ogumTo8OOySToIQr3fpwWyS5GPzir', 'k5TQPl4pLJKFw6N', 'TOCjjClYSjANFGz69uLoW0mt7pJRX8G', 'xcU', 'Jqp', 'T61KKshSq', 'cBCjVTqF3NOJgeXjZb9tSzPakeOJRoYwfbB', 'cAgiktPeAXpTAZ5', 'n582kYl9keMyJZ', 'FLQjXRSXulEvf3u2hz28WLddRZUcv8HUmiR', 'G303fSTJTJyazH6plrEkWT82bGKKleJl0We4Q', 'iM4Q21QmnaPdTL8yrpPNlUIDaR40Ej', 'eKPacJ6CereCIk', 'sVB3aXIzI8m3kbpQcUJao9MTSdmA9k2H', 'tO73NUdJJ3T3dBaWpt', 'BFIIDQRT2yYrV8jpyNqSmo9c1Uk5Qf647dTtur', 'SvyhUh9kGX', 'pbSX8qZkHmZfCcO9o0lEoKdhFe', 'WJEEtf1kIl0FCciNktPftiLTb', 'MVQrJh0Ilq8JjJ7ssbVA7dMV', 'jW6sW1n1spfU4XI4iMwGYE116BqmDjstm9izQ', '9ewEA2S4NtE3I260lAVCQt98UD', '2r7WaPdIdVBaC4Q1ETn', 'VDzC1', 'KbxlzJ70O4FRytsU', 'FKB8CrDksKnUEzswgnItginJ0Og1rdn8', 'JclFu', 'PLQqCpnsPKPTxmd4FzXkyQ', 'sjjeZESqzTqZmpzp', '244NAenB8V4QIkNjmulBz3MF7MNxRoS8oI', 'ZfA1NZ3bKUkZa3UMrxANLusZNPvlXtLQtmlBfq', 'caxki7wXE4BDIhCEWXoNS', '1N69bVxKSZ1a1UReo08fayz7kdCwNJfkypk8UGf', 'SbdKxUOt8V7hD1tmUornUXB1R0', 'dpGdOMq', 'Rg7RV60thLAnMGPTasIph2kcFub9oRFbAvFmAaU', 'eUqbeMUKyAMfLYT3AjOIGoJ', 'bsorsLAb', 'ZgW7BNjzkg1JjkJOx6e1xhIpUiQ19d8hKNneXtnR', 'wxszERqpwC1n05bIbVPwV9k3vmbP1gC', 'NHNOITH1STXltLhvguNNOlGRmdmIyZu7C', 'u0E4MOlUaYKoHXnnqwQRhmKBC2sDpQrW0ObANVdQ', 'w6eW', '9OdqwUegAM2hEMsRCKMscl', 'RikHBLCqM9UkArKGiFFCv5s942ZB', 'Zhxuesz6Q6q5wlaFHklL1nri', 'YNSeFqRAlD', 'Tcfpaobm3JsfRHsfIc7bzEu9k9O8X', 'HgsUk7DpO4a0wPDM655Si', 'Fp8urlcrlg8TMWx4vS7l', 'wJlEf', 'Dfr1uVU1fKkDy7rQqUl4S', '9RUS2UkXT5DNFM'] # pylint: disable=C0301
+    import random
+    STATUS = []
+    for _ in LINES:
+        if random.uniform(0, 1) >= 0.5:
+            STATUS.append("OK")
+        else:
+            STATUS.append("NO")
+    ui = Ui(LINES, STATUS) # pylint: disable=C0103
+    #ui = Ui(LINES, STATUS, debug=True)
