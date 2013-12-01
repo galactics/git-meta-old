@@ -96,7 +96,7 @@ class Ui(object):
         """ Print footer on screen
         """
         ## Statusline
-        statusline = "# of repo:XX, # ok:YY, # no:ZZ Write code"
+        statusline = "Git repo(s): %s, selected: %s" %(len(self.lines), len(self.selected_lines))
         self.screen.addstr(height-1, 0,
                            self.center_string(statusline, width-1), 
                            curses.A_STANDOUT|curses.A_BOLD)
