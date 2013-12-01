@@ -12,6 +12,7 @@ import logger
 class Ui(object):
     """User Interface for git-meta"""
     def __init__(self, lines, **kwarg):
+        # pylint: disable=C0103
         ## Set parameters
         self.debug = False if not 'debug' in kwarg.keys() else kwarg['debug']
         self.nb_row_head = 5
@@ -77,6 +78,7 @@ class Ui(object):
     def center_string(self, text, width):
         """ Center text by filling space with white space
         """
+        # pylint: disable=R0201
         ## Verify that width > len(text)
         size = len(text)
         if width <= size:
@@ -109,7 +111,8 @@ class Ui(object):
         """ Print footer on screen
         """
         ## Statusline
-        statusline = "Git repo(s): %s, selected: %s" %(len(self.lines), len(self.selected_lines))
+        statusline = "Git repo(s): %s, selected: %s" % (
+                        len(self.lines), len(self.selected_lines))
         self.screen.addstr(height-1, 0,
                            self.center_string(statusline, width-1), 
                            curses.A_STANDOUT|curses.A_BOLD)
@@ -129,14 +132,17 @@ class Ui(object):
         """ Mark current line as selected
         """
         if self.get_lines_index(self.highlight_line_nb) in self.selected_lines:
-            self.selected_lines.remove(self.get_lines_index(self.highlight_line_nb))
+            self.selected_lines.remove(
+                self.get_lines_index(self.highlight_line_nb))
         else:
-            self.selected_lines.append(self.get_lines_index(self.highlight_line_nb))
+            self.selected_lines.append(
+                self.get_lines_index(self.highlight_line_nb))
         self.selected_lines = sorted(self.selected_lines)
 
     def display(self, *args):
         """ Show information with curses
         """
+        # pylint: disable=W0613
         ## Clear screen
         self.screen.erase()
 
@@ -184,7 +190,7 @@ class Ui(object):
         """ Move up or down depending on increment and position on screen
         """
         ## Get height and width
-        height, width = self.screen.getmaxyx()
+        height, width = self.screen.getmaxyx() # pylint: disable=W0612
 
         ## Get next step
         next_line_nb = self.highlight_line_nb + increment
@@ -225,6 +231,7 @@ class Ui(object):
     def restore_screen(self):
         """ Restore screen as before
         """
+        # pylint: disable=R0201
         curses.initscr()
         curses.nocbreak()
         curses.echo()
@@ -237,6 +244,7 @@ class Ui(object):
 
     def exit(self):
         """ Quit User Interface"""
+        # pylint: disable=R0201
         sys.exit(1)
 
 if __name__ == "__main__":
