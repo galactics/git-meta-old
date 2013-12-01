@@ -115,7 +115,7 @@ class Ui(object):
                            curses.A_STANDOUT|curses.A_BOLD)
 
 
-    def nbLines(self, height):
+    def nb_lines(self, height):
         """ Show line number
         """
         for index in range(height):
@@ -172,7 +172,7 @@ class Ui(object):
 
         ## Show number of lines
         if self.debug:
-            self.nbLines(height)
+            self.nb_lines(height)
 
         ## Footer
         self.print_footer(height, width)
