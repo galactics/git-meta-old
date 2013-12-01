@@ -119,6 +119,7 @@ class Ui(object):
             self.selected_lines.remove(self.get_lines_index(self.highlight_line_nb))
         else:
             self.selected_lines.append(self.get_lines_index(self.highlight_line_nb))
+        self.selected_lines = sorted(self.selected_lines)
 
     def display(self, *args):
         """ Show information with curses
