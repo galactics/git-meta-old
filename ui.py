@@ -108,13 +108,17 @@ class Ui(object):
         for index in range(height):
             self.screen.addstr(index, 0, str(index+1) + "")
 
+    def get_lines_index(self, index):
+        """Convert index from screen to lines number"""
+        return index + self.top_line_to_show - self.nb_row_head
+
     def toogle_select_line(self):
         """ Mark current line as selected
         """
-        if self.highlight_line_nb in self.selected_lines:
-            self.selected_lines.remove(self.highlight_line_nb)
+        if self.get_lines_index(self.highlight_line_nb) in self.selected_lines:
+            self.selected_lines.remove(self.get_lines_index(self.highlight_line_nb))
         else:
-            self.selected_lines.append(self.highlight_line_nb)
+            self.selected_lines.append(self.get_lines_index(self.highlight_line_nb))
 
     def display(self, *args):
         """ Show information with curses
@@ -137,7 +141,7 @@ class Ui(object):
                 line = self.lines[nb_line]
 
                 ## Select
-                if index in self.selected_lines:
+                if self.get_lines_index(index) in self.selected_lines:
                     line = self.SELECT + line
                 else:
                     line = self.UNSELECT + line
