@@ -201,6 +201,8 @@ class Ui(object):
             else:
                 loop = False
 
+            ## TODO: Manage status and line separatly or with subwindow either with several addstr
+
         ## Show number of lines
         if self.debug:
             self.nb_lines(height)
