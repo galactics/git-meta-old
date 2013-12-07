@@ -29,7 +29,7 @@ class Ui(object):
         self.UNSELECT = "   "
         self.select_width = 3
         self.status_width = 6
-        self.FILL = '.'
+        self.FILL = " " if not "fill" in kwarg.keys() else kwarg['fill']
 
         ## Internal variables
         self._UP = -1
