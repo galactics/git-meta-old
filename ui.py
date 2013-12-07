@@ -181,9 +181,6 @@ class Ui(object):
                     color = curses.color_pair(2)
                 status = status.center(self.status_width, ' ')
 
-                ## Concatenante line and status
-                line = line + status
-
                 ## Select
                 if self.get_lines_index(index) in self.selected_lines:
                     line = self.SELECT + line
@@ -193,15 +190,17 @@ class Ui(object):
 
                 ## highlight
                 if index == self.highlight_line_nb:
-                    self.screen.addstr(index, self.shift, line, color + curses.A_BOLD)
+                    self.screen.addstr(index, self.shift, line, curses.A_BOLD)
+                    self.screen.addstr(index, self.shift + line_width,
+                                       status, color + curses.A_BOLD)
                 else:
-                    self.screen.addstr(index, self.shift, line, color)
+                    self.screen.addstr(index, self.shift, line)
+                    self.screen.addstr(index, self.shift + line_width,
+                                       status, color)
                 index += 1
                 nb_line += 1
             else:
                 loop = False
-
-            ## TODO: Manage status and line separatly or with subwindow either with several addstr
 
         ## Show number of lines
         if self.debug:
