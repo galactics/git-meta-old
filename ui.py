@@ -120,9 +120,13 @@ class Ui(object):
     def print_footer(self, height, width):
         """ Print footer on screen
         """
+        ## Get number of OK and NO status
+        nb_status_ok = len([ s for s in self.status if s == "OK" ])
+        nb_status_no = len([ s for s in self.status if s == "NO" ])
         ## Statusline
-        statusline = "Git repo(s): %s, selected: %s" % (
-                        len(self.lines), len(self.selected_lines))
+        statusline = "Git repo(s): %s, selected: %s, NO: %s, OK: %s" % (
+                        len(self.lines), len(self.selected_lines),
+                        nb_status_no, nb_status_ok)
         self.screen.addstr(height-1, 0,
                            self.center_string(statusline, width-1), 
                            curses.A_STANDOUT|curses.A_BOLD)
