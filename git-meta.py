@@ -6,7 +6,7 @@ from os import popen, environ, walk
 from os.path import join, exists, isfile
 import re
 from git import Repo, GitCommandError, InvalidGitRepositoryError, GitConfigParser
-from ConfigParser import NoOptionError, NoSectionError
+from ConfigParser import NoOptionError, NoSectionError, ParsingError
 from textwrap import wrap
 
 ## retrieve the size of the terminal
@@ -65,7 +65,7 @@ class GitRepo:
         self.forward = None
         self.repo = Repo(self.path)
         if self.repo.git.rev_parse("--is-bare-repository") == 'true':
-            print "Bare repository"
+            print self.path + "is a bare repository"
 
     def get_error(self):
         """ Return error number
@@ -94,7 +94,7 @@ class GitRepo:
                 self.repo.git.checkout(str(branch))
 
                 ## Extract the number of forward commit on the local branch
-                regex = re.compile(r'^\# Your branch .+ by (\d+) commits?\.',re.M)
+                regex = re.compile(r'Your branch .+ by (\d+) commits?\.',re.M)
                 status = self.repo.git.status().split("\n")[1]
                 if regex.search(status):
                     branch_forward[str(branch)] = int(regex.sub(r'\1',status))
@@ -161,14 +161,14 @@ class GitRepo:
         stash = ""
         forward = ""
 
+        display = ">> " + self.path
+
         if self.globalStatus():
             status = "[ "+self.bcolors.OKGREEN+"OK"+self.bcolors.ENDC+" ]"
-            display = ">> " + self.path
         else:
             status = self.bcolors.bold() + "[ " + self.bcolors.bold("FAIL") +\
                     "NO" + self.bcolors.bold("ENDC") + self.bcolors.bold() + " ]" +\
                     self.bcolors.bold("ENDC")
-            display = ">> " + self.path
             display = self.bcolors.bold() + display + self.bcolors.ENDC
 
         ## Get stash
@@ -210,9 +210,7 @@ class GitMeta:
         self.update_db(force_scan)
         try:
             self.animate = self.config('animate')
-        except NoSectionError:
-            self.animate = False
-        except NoOptionError:
+        except (NoSectionError, NoOptionError, ParsingError):
             self.animate = False
 
     def config(self,item):
