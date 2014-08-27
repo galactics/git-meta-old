@@ -200,7 +200,8 @@ class GitRepo:
 class GitMeta:
     """ GitMeta class
     """
-    def __init__(self, force_scan=False, root=environ['HOME']):
+    def __init__(self, force_scan=False, root=environ['HOME'], followlinks=False):
+        self.followlinks = followlinks
         self.fname = environ['HOME']+'/.gitdb'
         self.ignore_fname = environ['HOME']+'/.gitdb_ignore'
         self.root = root
@@ -282,7 +283,7 @@ class GitMeta:
         ignore = "|".join(self.ignore)
 
         ## Walk in repo and get git repo
-        for root, dirs, files in walk(self.root):
+        for root, dirs, files in walk(self.root, followlinks=self.followlinks):
             for f2 in files:
                 fpath = join(root,f2)
                 ## if this is a repo ...
@@ -363,6 +364,9 @@ if __name__ == '__main__':
     parser.add_argument('-s', '--scan', dest='scan',
                         action='store_true', default=False,
                         help='Perform a complete tree scan of your data to search for git repositories')
+    parser.add_argument("--followlinks", dest="followlinks", action="store_true",
+                        help="Follow simlink during the scan process (default false)"
+                       )
     parser.add_argument('-v', '--verbose', dest='verbose',
                         action='store_true', default=False,
                         help="Active verbose mode: print git status for 'NO' repo")
@@ -377,7 +381,7 @@ if __name__ == '__main__':
                        help="Select only git repo by status. value=ok|no")
     args = parser.parse_args()
 
-    verif = GitMeta(args.scan)
+    verif = GitMeta(args.scan, followlinks=args.followlinks)
     verif.buildList(args.list_all,args.push_all)
     verif.printStatuses(args.verbose, args.sortNOOK, args.reverse, args.select)
 
